@@ -5,6 +5,6 @@ import Icon from "./components/icons";
 <template>
   <div>
     <!-- <img src="./assets/sample.svg" /> -->
-    <Icon name="sample" width="30" height="30" :color="['red']" />
+    <Icon name="sample" width="30" height="30" :color="['red', 'white']" />
   </div>
 </template>
