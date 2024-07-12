@@ -1,0 +1,13 @@
+
+<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icon">
+<path id="Rectangle 4348" d="M3.23438 6.62708L3.34382 11.0021L3.55088 18.4517C3.55746 18.6885 3.75132 18.8771 3.98821 18.8771H18.0122C18.2491 18.8771 18.4429 18.6885 18.4495 18.4517L18.6563 11.0021L18.7656 6.62708" stroke="#192434" stroke-width="1.70625" stroke-linejoin="round"/>
+<g id="Rectangle 4349">
+<mask id="path-2-inside-1_30962_145387" fill="white">
+<rect x="1.37543" y="2.2522" width="19.25" height="5.25" rx="0.4375"/>
+</mask>
+<rect x="1.37543" y="2.2522" width="19.25" height="5.25" rx="0.4375" stroke="#192434" stroke-width="3.4125" stroke-linejoin="round" mask="url(#path-2-inside-1_30962_145387)"/>
+</g>
+<path id="Vector 215" d="M8.37506 10.1271C10.4253 10.1271 11.5748 10.1271 13.6251 10.1271" stroke="#192434" stroke-width="1.70625" stroke-linecap="square"/>
+</g>
+</svg>
