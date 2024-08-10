@@ -1,86 +1,119 @@
 <template>
-  <div v-html="sanitizedSvgContent"></div>
+  <div ref="svgContainer" :class="iconClasses" :style="iconStyle"></div>
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect } from "vue";
-import DOMPurify from "dompurify";
+import type { SvgCacheStore } from "@/composables/useSvgCacheStore";
+import { ref, onMounted, onUnmounted, inject, watch, computed } from "vue";
 
-// Props 정의
-interface Props {
+const props = defineProps<{
+  name?: string;
   src: string;
   width?: string;
   height?: string;
-  color?: string[];
+  color?: string;
+  hoverColor?: string;
+  strokeWidth?: string;
+}>();
+
+const svgCacheStore = inject<SvgCacheStore>("svgCacheStore");
+
+const iconClasses = computed(() => ({
+  "gen-icon": true,
+  "gen-icon--hoverable": !!props.hoverColor,
+}));
+
+const iconStyle = computed(() => ({
+  cursor: "pointer",
+  display: "inline-block",
+  color: props.color,
+}));
+
+if (!svgCacheStore) {
+  throw new Error("SVG Cache Store is not provided!");
 }
 
-const props = defineProps<Props>();
+const svgContainer = ref<HTMLElement | null>(null);
+let svgElement: SVGElement | null = null;
 
-// 기본값 설정
-const width = ref(props.width || "24");
-const height = ref(props.height || "24");
-const color = ref(props.color || ["black", "none"]);
+const loadAndInsertSvg = async () => {
+  const svgContent = await svgCacheStore.loadSvg(props.src);
+  insertSvgIntoDom(svgContent);
+};
 
-// Reactive 변수 설정
-const svgContent = ref("");
-const sanitizedSvgContent = ref("");
-const svgCache: Record<string, string> = {};
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+const insertSvgIntoDom = (svgText: string) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, "image/svg+xml");
+  svgElement = doc.querySelector("svg");
 
-const loadSvg = async () => {
-  if (svgCache[props.src]) {
-    svgContent.value = svgCache[props.src];
-    modifySvg();
-  } else {
-    try {
-      const response = await fetch(props.src);
-      let svgText = await response.text();
-
-      svgCache[props.src] = svgText; // 캐시에 저장
-      svgContent.value = svgText;
-      modifySvg();
-    } catch (error) {
-      console.error("Error loading SVG:", error);
+  if (svgElement) {
+    updateSvgAttributes();
+    if (svgContainer.value) {
+      svgContainer.value.innerHTML = ""; // 기존 SVG 제거
+      svgContainer.value.appendChild(svgElement); // 새로운 SVG 삽입
     }
   }
 };
 
-const modifySvg = () => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgContent.value, "image/svg+xml");
-  const svg = doc.querySelector("svg");
+const updateSvgAttributes = () => {
+  if (svgElement) {
+    const iconName = props.name || props.src.replace(/\.svg$/, "");
+    const iconClassName = `i-${iconName}`;
 
-  if (svg) {
-    svg.setAttribute("width", width.value);
-    svg.setAttribute("height", height.value);
+    svgElement.setAttribute("width", props.width || "24");
+    svgElement.setAttribute("height", props.height || "24");
+    svgElement.style.display = "block";
+    svgElement.classList.add(iconClassName);
 
-    const paths = svg.querySelectorAll("[stroke], [fill]");
-
-    paths.forEach((path) => {
-      if (path.hasAttribute("stroke")) {
-        path.setAttribute("stroke", color.value[0]);
-        path.classList.add("svg-stroke");
-      }
-      if (path.hasAttribute("fill")) {
-        path.setAttribute("fill", color.value[1]);
-        path.classList.add("svg-fill");
-      }
-    });
-
-    svgContent.value = new XMLSerializer().serializeToString(svg);
-    sanitizedSvgContent.value = DOMPurify.sanitize(svgContent.value);
+    const paths = svgElement.querySelectorAll("[stroke], [fill]");
+    addSvgPathClass(paths);
+    setSvgStyle(svgElement, iconClassName);
   }
 };
 
-const debouncedLoadSvg = () => {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
+const addSvgPathClass = (paths: NodeListOf<Element> | Element[]) => {
+  paths.forEach((path) => {
+    const hasStroke =
+      path.hasAttribute("stroke") && path.getAttribute("stroke") !== "none";
+    const hasFill =
+      path.hasAttribute("fill") && path.getAttribute("fill") !== "none";
+
+    if (hasStroke) {
+      path.classList.add("svg-stroke");
+      if (props.strokeWidth) {
+        path.setAttribute("stroke-width", props.strokeWidth);
+      }
+    }
+    if (hasFill) {
+      path.classList.add("svg-fill");
+    }
+  });
+};
+const setSvgStyle = (svgElement: SVGElement, iconClassName: string) => {
+  let styleElement = svgElement.querySelector("style");
+  if (!styleElement) {
+    styleElement = document.createElement("style");
+    svgElement.insertBefore(styleElement, svgElement.firstChild);
   }
-  debounceTimer = setTimeout(loadSvg, 300); // 300ms 디바운스
+  styleElement.textContent = `
+      svg.${iconClassName} .svg-stroke { stroke: currentColor; }
+      svg.${iconClassName} .svg-fill { fill: currentColor; }
+      svg.${iconClassName}:hover .svg-stroke { stroke: ${props.hoverColor}; }
+      svg.${iconClassName}:hover .svg-fill { fill: ${props.hoverColor}; }
+    `;
 };
 
-// Watch props.src and reload SVG
-watchEffect(() => {
-  debouncedLoadSvg();
+onMounted(() => {
+  loadAndInsertSvg();
 });
+
+onUnmounted(() => {
+  svgCacheStore.removeSvg(props.src);
+});
+
+watch(
+  () => [props.width, props.height, props.strokeWidth],
+  () => updateSvgAttributes(),
+  { immediate: true, flush: "post" }
+);
 </script>
