@@ -1,5 +1,5 @@
 <template>
-  <div ref="svgContainer" :class="iconClasses" :style="iconStyle" @mouseover="isHovered = true" @mouseleave="isHovered = false"></div>
+  <div ref="svgContainer" :class="iconClasses" :style="iconStyle"></div>
 </template>
 
 <script setup lang="ts">
@@ -17,7 +17,11 @@ const props = defineProps<{
 }>();
 
 const svgCacheStore = inject<SvgCacheStore>("svgCacheStore");
-const isHovered = ref(false);
+
+const iconName = props.name || props.src.replace(/\.svg$/, "");
+const iconClassName = `i-${iconName}`;
+const uniqueId = `${iconClassName}-${Date.now() + Math.random().toString(36).substring(2)}`;
+
 
 const iconClasses = computed(() => ({
   "gen-icon": true,
@@ -27,7 +31,7 @@ const iconClasses = computed(() => ({
 const iconStyle = computed(() => ({
   cursor: "pointer",
   display: "inline-block",
-  color: isHovered.value ? props.hoverColor : props.color,
+  color: props.color,
 }));
 
 if (!svgCacheStore) {
@@ -65,6 +69,7 @@ const updateSvgAttributes = () => {
     svgElement.setAttribute("height", props.height || "24");
     svgElement.style.display = "block";
     svgElement.classList.add(iconClassName);
+    svgElement.classList.add(uniqueId);
 
     const paths = svgElement.querySelectorAll("[stroke], [fill]");
     addSvgPathClass(paths);
@@ -97,8 +102,10 @@ const setSvgStyle = (svgElement: SVGElement, iconClassName: string) => {
     svgElement.insertBefore(styleElement, svgElement.firstChild);
   }
   styleElement.textContent = `
-      svg.${iconClassName} .svg-stroke { stroke: currentColor; }
-      svg.${iconClassName} .svg-fill { fill: currentColor; }
+      svg.${iconClassName}.${uniqueId} .svg-stroke { stroke: currentColor; }
+      svg.${iconClassName}.${uniqueId} .svg-fill { fill: currentColor; }
+      svg.${iconClassName}.${uniqueId}:hover .svg-stroke { stroke: ${props.hoverColor}; }
+      svg.${iconClassName}.${uniqueId}:hover .svg-fill { fill: ${props.hoverColor}; }
     `;
 };
 

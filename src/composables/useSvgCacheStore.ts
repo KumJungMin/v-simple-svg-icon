@@ -6,6 +6,7 @@ export interface SvgCacheStore {
   removeSvg: (src: string) => void;
   getSvgUsageCount: (src: string) => number;
   clearCache: () => void;
+  iconUsageCount: ComputedRef<Record<string, number>>;
   svgCache: ComputedRef<Record<string, string>>;
 }
 
@@ -94,6 +95,7 @@ export function useSvgCacheStore(): SvgCacheStore {
   return {
     loadSvg,
     removeSvg,
+    iconUsageCount,
     getSvgUsageCount,
     clearCache,
     svgCache: computed(() => svgCache.value),

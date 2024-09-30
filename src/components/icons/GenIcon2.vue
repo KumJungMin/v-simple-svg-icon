@@ -21,6 +21,10 @@
   
   const svgCacheStore = inject<SvgCacheStore>("svgCacheStore");
   
+  const iconName = props.name || props.src.replace(/\.svg$/, "");
+  const iconClassName = `i-${iconName}`;
+  const uniqueId = `${iconClassName}-${Date.now() + Math.random().toString(36).substring(2)}`;
+
   if (!svgCacheStore) {
     throw new Error("SVG Cache Store is not provided!");
   }
@@ -70,14 +74,13 @@
   
   const updateSvgAttributes = () => {
     if (svgElement) {
-      const iconName = props.name || props.src.replace(/\.svg$/, "");
-      const iconClassName = `i-${iconName}`;
   
       svgElement.setAttribute("width", props.width || "24");
       svgElement.setAttribute("height", props.height || "24");
       svgElement.style.display = "block";
       svgElement.classList.add(iconClassName);
-  
+      svgElement.classList.add(uniqueId);
+
       const paths = svgElement.querySelectorAll("[stroke], [fill]");
   
       paths.forEach((path) => {
@@ -101,15 +104,19 @@
         svgElement.insertBefore(styleElement, svgElement.firstChild);
       }
   
+      
+
       styleElement.textContent = `
-        svg.${iconClassName} .svg-stroke { stroke: ${strokeColor.value}; }
-        svg.${iconClassName} .svg-fill { fill: ${fillColor.value}; }
-        svg.${iconClassName}:hover .svg-stroke { stroke: ${hoverStrokeColor.value}; }
-        svg.${iconClassName}:hover .svg-fill { fill: ${hoverFillColor.value}; }
+        svg.${iconClassName}.${uniqueId} .svg-stroke { stroke: ${strokeColor.value}; }
+        svg.${iconClassName}.${uniqueId} .svg-fill { fill: ${fillColor.value}; }
+        svg.${iconClassName}.${uniqueId}:hover .svg-stroke { stroke: ${hoverStrokeColor.value}; }
+        svg.${iconClassName}.${uniqueId}:hover .svg-fill { fill: ${hoverFillColor.value}; }
       `;
     }
   };
   
+ 
+
   onMounted(() => {
     loadAndInsertSvg();
   });
