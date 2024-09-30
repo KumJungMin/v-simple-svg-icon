@@ -1,4 +1,4 @@
-import { ref, computed, ComputedRef } from "vue";
+import { ref, Ref } from "vue";
 
 // SvgCacheStore 인터페이스 정의
 export interface SvgCacheStore {
@@ -6,8 +6,8 @@ export interface SvgCacheStore {
   removeSvg: (src: string) => void;
   getSvgUsageCount: (src: string) => number;
   clearCache: () => void;
-  iconUsageCount: ComputedRef<Map<string, number>>;
-  svgCache: ComputedRef<Map<string, string>>;
+  iconUsageCount: Ref<Map<string, number>>;
+  svgCache: Ref<Map<string, string>>;
 }
 
 // 캐시스토어와 카운팅을 관리하는 컴포저블
@@ -108,7 +108,7 @@ export function useSvgCacheStore(): SvgCacheStore {
     removeSvg,
     getSvgUsageCount,
     clearCache,
-    iconUsageCount: computed(() => iconUsageCount.value),
-    svgCache: computed(() => svgCache.value),
+    iconUsageCount,
+    svgCache,
   };
 }
