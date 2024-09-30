@@ -1,5 +1,5 @@
 <template>
-  <div ref="svgContainer" :class="iconClasses" :style="iconStyle"></div>
+  <div ref="svgContainer" :class="iconClasses" :style="iconStyle" @mouseover="isHovered = true" @mouseleave="isHovered = false"></div>
 </template>
 
 <script setup lang="ts">
@@ -17,6 +17,7 @@ const props = defineProps<{
 }>();
 
 const svgCacheStore = inject<SvgCacheStore>("svgCacheStore");
+const isHovered = ref(false);
 
 const iconClasses = computed(() => ({
   "gen-icon": true,
@@ -26,7 +27,7 @@ const iconClasses = computed(() => ({
 const iconStyle = computed(() => ({
   cursor: "pointer",
   display: "inline-block",
-  color: props.color,
+  color: isHovered.value ? props.hoverColor : props.color,
 }));
 
 if (!svgCacheStore) {
@@ -98,8 +99,6 @@ const setSvgStyle = (svgElement: SVGElement, iconClassName: string) => {
   styleElement.textContent = `
       svg.${iconClassName} .svg-stroke { stroke: currentColor; }
       svg.${iconClassName} .svg-fill { fill: currentColor; }
-      svg.${iconClassName}:hover .svg-stroke { stroke: ${props.hoverColor}; }
-      svg.${iconClassName}:hover .svg-fill { fill: ${props.hoverColor}; }
     `;
 };
 
