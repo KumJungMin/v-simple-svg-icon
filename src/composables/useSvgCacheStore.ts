@@ -45,17 +45,19 @@ export function useSvgCacheStore(): SvgCacheStore {
     }
   };
 
-  
   const startLoadingSvg = (src: string): Promise<string> => {
     if (svgCache.value.size >= maxCacheSize) removeLeastUsedSvg();
 
-    // 요청 수 초기화
     let count = 1;
 
     // SVG를 로드하고 pendingLoads에 등록
     const loadPromise = (async () => {
       try {
-        const response = await fetch(src);
+        // 브라우저 캐시 - 캐시된 리소스가 있으면 사용하고, 없으면 네트워크 요청
+        const response = await fetch(src, { cache: "force-cache" });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const svgText = await response.text();
 
         svgCache.value.set(src, svgText);
