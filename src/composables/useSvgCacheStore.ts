@@ -1,6 +1,5 @@
 import { ref, Ref } from "vue";
 
-// SvgCacheStore 인터페이스 정의
 export interface SvgCacheStore {
   loadSvg: (src: string) => Promise<string>;
   removeSvg: (src: string) => void;
@@ -10,28 +9,37 @@ export interface SvgCacheStore {
   svgCache: Ref<Map<string, string>>;
 }
 
-// 캐시스토어와 카운팅을 관리하는 컴포저블
 export function useSvgCacheStore(): SvgCacheStore {
   const svgCache = ref<Map<string, string>>(new Map());
   const iconUsageCount = ref<Map<string, number>>(new Map());
-  const pendingLoads = ref<Map<string, { promise: Promise<string>; count: number }>>(new Map());
+  const pendingLoads = ref<
+    Map<string, { promise: Promise<string>; count: number }>
+  >(new Map());
   const maxCacheSize = 100;
 
-  // 가장 적게 사용된 SVG를 캐시에서 제거하는 함수
-  const removeLeastUsedSvg = () => {
-    for (const [key, count] of iconUsageCount.value) {
-      // 가장 오래된 항목 중에서 사용 횟수가 최소인 SVG를 제거하고 반복문 중단
-      if (count >= 1) {
-        removeSvg(key);
-        break;
-      }
+  // LRU: 가장 오래 사용되지 않은 SVG를 캐시에서 제거
+  const removeLeastRecentlyUsed = () => {
+    const firstKey = svgCache.value.keys().next().value;
+    if (firstKey) {
+      svgCache.value.delete(firstKey);
+      iconUsageCount.value.delete(firstKey);
     }
   };
 
-  // SVG 로드를 시작하는 함수
+  // 캐시 접근 시 LRU 순서 갱신 (맨 뒤로 이동)
+  const touchCache = (src: string) => {
+    const cachedSvg = svgCache.value.get(src);
+    if (cachedSvg) {
+      svgCache.value.delete(src);
+      svgCache.value.set(src, cachedSvg);
+    }
+  };
+
+  // SVG 로드 (컴포넌트 mount 시 호출)
   const loadSvg = (src: string): Promise<string> => {
     const cachedSvg = svgCache.value.get(src);
     if (cachedSvg) {
+      touchCache(src); // LRU 순서 갱신
       const count = getSvgUsageCount(src) + 1;
       iconUsageCount.value.set(src, count);
       return Promise.resolve(cachedSvg);
@@ -46,7 +54,7 @@ export function useSvgCacheStore(): SvgCacheStore {
   };
 
   const startLoadingSvg = (src: string): Promise<string> => {
-    if (svgCache.value.size >= maxCacheSize) removeLeastUsedSvg();
+    if (svgCache.value.size >= maxCacheSize) removeLeastRecentlyUsed();
 
     let count = 1;
 
@@ -80,7 +88,7 @@ export function useSvgCacheStore(): SvgCacheStore {
     return loadPromise;
   };
 
-  // SVG 제거하는 함수
+  // SVG 제거 (컴포넌트 unmount 시 호출) - 참조 카운팅 + 즉시 제거
   const removeSvg = (src: string) => {
     const usageCount = getSvgUsageCount(src);
     if (!usageCount) return;
