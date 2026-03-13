@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch, useTemplateRef } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useSvgCacheStore } from "../../composables/useSvgCacheStore";
 import type { CreateCacheStore } from "../../composables/useSvgCacheStore";
 
@@ -25,7 +25,7 @@ const uniqueId = getUniqueId(iconClassName);
 const svgCacheStore = inject<CreateCacheStore>(useSvgCacheStore().providerKey);
 
 const isSvgLoading = ref(false);
-const svgContainer = useTemplateRef("svgContainer");
+const svgContainer = ref<HTMLDivElement | null>(null);
 let svgElement: SVGElement | null = null;
 
 const defaultStyle = computed(() => ({
@@ -129,9 +129,9 @@ function updateSvgAttributes() {
 
   const paths: NodeListOf<SVGPathElement> = svgElement.querySelectorAll("[stroke], [fill]");
 
-  if (!paths || !Array.isArray(paths)) return;
+  if (!paths) return;
 
-  for (const path of paths) {
+  for (const path of paths as unknown as SVGPathElement[]) {
     const hasStroke = path.hasAttribute("stroke") && path.getAttribute("stroke") !== "none";
     if (hasStroke && props.strokeWidth) {
       settingPathStroke(path);
@@ -151,9 +151,8 @@ function updateSvgAttributes() {
 
 function settingPathStroke(path: SVGPathElement) {
   path.classList.add(STROKE_CLASS);
-  path.setAttribute(STROKE_WIDTH_CLASS, props.strokeWidth);
-
   toggleActiveClass(path);
+  path.setAttribute(STROKE_WIDTH_CLASS, props.strokeWidth);
 }
 
 function settingPathFill(path: SVGPathElement) {
@@ -197,9 +196,10 @@ function getSvgStyleContent(data: { iconClassName: string; uniqueId: string }) {
   const svgClass = `svg.${data.iconClassName}.${data.uniqueId}`;
   const contents = [
     `${svgClass} .${STROKE_CLASS} { stroke: ${strokeColor.value}; }`,
+    `${svgClass} .${STROKE_CLASS}.active { stroke: ${strokeActiveColor.value}; }`,
+
     `${svgClass} .${FILL_CLASS} { fill: ${fillColor.value}; }`,
-    `${svgClass} .${STROKE_CLASS}:hover { stroke: ${strokeActiveColor.value}; }`,
-    `${svgClass} .${FILL_CLASS}:hover { fill: ${fillActiveColor.value}; }`,
+    `${svgClass} .${FILL_CLASS}.active { fill: ${fillActiveColor.value}; }`,
   ];
   for (const data of props.colorGroup) {
     const { name, fill = "", stroke = "" } = data;

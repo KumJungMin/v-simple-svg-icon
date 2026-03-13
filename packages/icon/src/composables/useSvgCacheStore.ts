@@ -12,7 +12,7 @@ export type SvgCacheStore = {
 };
 
 export function useSvgCacheStore() {
-  const providerKey = Symbol("SvgCacheStore");
+  const providerKey = "svgCacheStore:v1";
   let store: CreateCacheStore | null = null;
 
   const init = (root: App<Element>, options: SvgCacheStoreOptions) => {

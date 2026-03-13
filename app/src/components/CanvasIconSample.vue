@@ -3,13 +3,13 @@
 </template>
 
 <script setup lang="ts">
-import type { SvgCacheStore } from "@v-simple/icon";
+import type { CreateCacheStore } from "@v-simple/icon";
 import { onUnmounted, ref, watch } from "vue";
 
 const props = withDefaults(
   defineProps<{
-    store: SvgCacheStore;
-    src: string;
+    store: CreateCacheStore;
+    name: string;
     width?: number;
     height?: number;
   }>(),
@@ -23,7 +23,7 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 let objectUrl: string | null = null;
 
 const drawSvgToCanvas = async () => {
-  const svgText = await props.store.loadSvg(props.src);
+  const svgText = await props.store.loadSvg(props.name);
   const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
 
   if (objectUrl) {
@@ -51,10 +51,10 @@ const drawSvgToCanvas = async () => {
 };
 
 watch(
-  () => props.src,
-  async (newSrc, oldSrc) => {
-    if (oldSrc && oldSrc !== newSrc) {
-      props.store.removeSvg(oldSrc);
+  () => props.name,
+  async (newName, oldName) => {
+    if (oldName && oldName !== newName) {
+      props.store.removeSvg(oldName);
     }
     await drawSvgToCanvas();
   },
@@ -62,7 +62,7 @@ watch(
 );
 
 onUnmounted(() => {
-  props.store.removeSvg(props.src);
+  props.store.removeSvg(props.name);
   if (objectUrl) {
     URL.revokeObjectURL(objectUrl);
   }
