@@ -1,18 +1,29 @@
-# Vue 3 + TypeScript + Vite
+# v-simple-svg-icon
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+터보레포 기반 모노레포 구조입니다.
 
-## Recommended IDE Setup
+## 구조
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+```text
+.
+├── app/                 # 아이콘 패키지 사용 샘플 앱
+│   ├── src/
+│   │   ├── App.vue      # 컴포넌트 방식 + 캔버스 방식 예시
+│   │   └── components/
+│   └── public/icons/    # 샘플 SVG 아이콘
+└── packages/
+   └── icon/            # 핵심 아이콘 로직(GenIcon, store 등)
+```
 
-## Type Support For `.vue` Imports in TS
+## 실행
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
+```bash
+pnpm install
+pnpm dev
+```
 
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
+## 스크립트
 
-1. Disable the built-in TypeScript Extension
-   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+- `pnpm dev`: 모든 워크스페이스의 `dev` 실행
+- `pnpm build`: 모든 워크스페이스 빌드
+- `pnpm typecheck`: 모든 워크스페이스 타입체크
