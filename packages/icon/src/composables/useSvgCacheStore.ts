@@ -9,14 +9,13 @@ export type SvgCacheStore = {
   init: (root?: App, options?: SvgCacheStoreOptions) => CreateCacheStore;
   clear: () => void;
   getStore: () => CreateCacheStore;
-  providerKey: symbol;
 };
 
 let globalStore: CreateCacheStore | null = null;
 
-export function useSvgCacheStore(): SvgCacheStore {
-  const providerKey = "svgCacheStore:v1";
+export const providerKey = Symbol("svgCacheStore:v1");
 
+export function useSvgCacheStore(): SvgCacheStore {
   const init = (root?: App, options?: SvgCacheStoreOptions) => {
     if (globalStore) return globalStore;
 
@@ -57,7 +56,6 @@ export function useSvgCacheStore(): SvgCacheStore {
     init,
     clear,
     getStore,
-    providerKey,
   };
 }
 

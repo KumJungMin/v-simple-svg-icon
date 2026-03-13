@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useSvgCacheStore, CreateCacheStore } from "../../composables/useSvgCacheStore";
+import { CreateCacheStore, providerKey } from "../../composables/useSvgCacheStore";
 
 const props = defineProps<{
   name: string;
@@ -20,8 +20,6 @@ const FILL_CLASS = "svg-fill";
 
 const iconClassName = `i-${props.name || "icon"}`;
 const uniqueId = getUniqueId(iconClassName);
-
-const { providerKey } = useSvgCacheStore();
 
 const svgCacheStore = inject<CreateCacheStore>(providerKey);
 

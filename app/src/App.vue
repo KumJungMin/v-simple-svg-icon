@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { nextTick, ref, watch, inject } from "vue";
-import { Icon, drawCanvasIcon, CreateCacheStore, clearCanvasIconCache } from "@v-simple/icon";
+import {
+  Icon,
+  drawCanvasIcon,
+  CreateCacheStore,
+  clearCanvasIconCache,
+  providerKey,
+} from "@v-simple/icon";
 
 const showIconOne = ref(true);
 const showIconTwo = ref(true);
@@ -10,7 +16,7 @@ const showCanvasTwo = ref(true);
 const canvasOneRef = ref<HTMLCanvasElement | null>(null);
 const canvasTwoRef = ref<HTMLCanvasElement | null>(null);
 
-const svgStore = inject<CreateCacheStore>("svgCacheStore:v1")!;
+const svgStore = inject<CreateCacheStore>(providerKey);
 
 const isRed = ref(true);
 
