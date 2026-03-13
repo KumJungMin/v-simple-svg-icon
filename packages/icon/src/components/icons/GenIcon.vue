@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useSvgCacheStore } from "../../composables/useSvgCacheStore";
-import type { CreateCacheStore } from "../../composables/useSvgCacheStore";
+import { useSvgCacheStore, CreateCacheStore } from "../../composables/useSvgCacheStore";
 
 const props = defineProps<{
   name: string;
@@ -22,7 +21,9 @@ const FILL_CLASS = "svg-fill";
 const iconClassName = `i-${props.name || "icon"}`;
 const uniqueId = getUniqueId(iconClassName);
 
-const svgCacheStore = inject<CreateCacheStore>(useSvgCacheStore().providerKey);
+const { providerKey } = useSvgCacheStore();
+
+const svgCacheStore = inject<CreateCacheStore>(providerKey);
 
 const isSvgLoading = ref(false);
 const svgContainer = ref<HTMLDivElement | null>(null);
@@ -218,7 +219,7 @@ function getColorGroupClassName(groupName: string) {
 </script>
 
 <template>
-  <div ref="svgContainer" class="position-relative" :style="defaultStyle">
+  <div class="position-relative" :style="defaultStyle">
     <div
       v-if="isSvgLoading"
       class="skeleton-bg position-absolute"

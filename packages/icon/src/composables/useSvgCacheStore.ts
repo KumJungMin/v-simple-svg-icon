@@ -6,35 +6,57 @@ export interface SvgCacheStoreOptions {
 }
 
 export type SvgCacheStore = {
-  init: (root: App, options: SvgCacheStoreOptions) => void;
+  init: (root?: App, options?: SvgCacheStoreOptions) => CreateCacheStore;
   clear: () => void;
+  getStore: () => CreateCacheStore;
   providerKey: symbol;
 };
 
-export function useSvgCacheStore() {
-  const providerKey = "svgCacheStore:v1";
-  let store: CreateCacheStore | null = null;
+let globalStore: CreateCacheStore | null = null;
 
-  const init = (root: App<Element>, options: SvgCacheStoreOptions) => {
+export function useSvgCacheStore(): SvgCacheStore {
+  const providerKey = "svgCacheStore:v1";
+
+  const init = (root?: App, options?: SvgCacheStoreOptions) => {
+    if (globalStore) return globalStore;
+
+    if (!options?.baseUrl) {
+      throw new Error("baseUrl is required in SvgCacheStoreOptions");
+    }
+
     const _options = { maxCacheSize: 50, ...options };
 
-    if (!_options.baseUrl) throw new Error("baseUrl is required in SvgCacheStoreOptions");
+    globalStore = createSvgCacheStore(_options);
 
-    store = createSvgCacheStore(_options);
+    // Vue provide (optional)
     if (root) {
-      root.provide(providerKey, store);
+      root.provide(providerKey, globalStore);
     } else {
-      provide(providerKey, store);
+      try {
+        provide(providerKey, globalStore);
+      } catch {
+        // setup 외부에서 호출되면 무시
+      }
     }
+
+    return globalStore;
+  };
+
+  const getStore = () => {
+    if (!globalStore) {
+      throw new Error("SvgCacheStore not initialized. Call init() first.");
+    }
+    return globalStore;
   };
 
   const clear = () => {
-    if (store) store.clearCache();
+    globalStore?.clearCache();
   };
 
   return {
     init,
     clear,
+    getStore,
     providerKey,
   };
 }
