@@ -45,6 +45,7 @@ const DEFAULT_SIZE = 24;
 const sourceSvgCache = new Map<string, string>(); // SVG 파일명 → SVG 문자열 캐시 (fetch 또는 store에서 로드된 SVG)
 const parsedIconCache = new Map<string, ParsedSvgIcon>(); // SVG → Path2D 변환 결과를 저장
 const spriteCache = new Map<string, OffscreenCanvas>(); // 최종 Canvas sprite 캐시 (아이콘 이름 + fill + stroke + size + dpr 조합) Canvas path 렌더링 비용 제거
+const spritePromiseCache = new Map<string, Promise<OffscreenCanvas>>(); // 진행 중인 sprite 생성 Promise 캐시 (동일 키 동시 호출 시 중복 렌더링 방지)
 
 type ParsedSvgIcon = {
   viewBox: { width: number; height: number };
@@ -60,6 +61,7 @@ export function clearCanvasIconCache() {
   sourceSvgCache.clear();
   parsedIconCache.clear();
   spriteCache.clear();
+  spritePromiseCache.clear();
 }
 
 export async function drawCanvasIcon(
@@ -83,16 +85,30 @@ async function getSprite(
 ) {
   const dpr = globalThis.devicePixelRatio || 1;
   const key = makeSpriteKey(name, fill, stroke, size, dpr);
-  const cached = spriteCache.get(key);
 
+  const cached = spriteCache.get(key);
   if (cached) {
     return cached;
-  } else {
-    const icon = await getParsedIcon(name, store);
-    const sprite = renderSprite(icon, size, fill, stroke);
-    spriteCache.set(key, sprite);
-    return sprite;
   }
+
+  const inFlight = spritePromiseCache.get(key);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const promise = (async () => {
+    try {
+      const icon = await getParsedIcon(name, store);
+      const sprite = renderSprite(icon, size, fill, stroke);
+      spriteCache.set(key, sprite);
+      return sprite;
+    } finally {
+      spritePromiseCache.delete(key);
+    }
+  })();
+
+  spritePromiseCache.set(key, promise);
+  return promise;
 }
 
 async function getParsedIcon(name: string, store: CreateCacheStore): Promise<ParsedSvgIcon> {
