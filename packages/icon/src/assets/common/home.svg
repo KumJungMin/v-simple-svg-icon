@@ -1,0 +1,4 @@
+<svg viewBox="0 0 24 24" fill="none">
+  <path d="M3 10L12 3L21 10V21H3V10Z" stroke="#111" data-color-group="main"/>
+  <path d="M9 21V12H15V21" fill="#111" data-color-group="accent"/>
+</svg>

@@ -3,6 +3,10 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
+    "paths": {
+      "@v-simple/icon/common": ["../packages/icon/src/generated/common/index.ts"],
+      "@v-simple/icon/core/*": ["../packages/icon/src/core/*"]
+    },
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",

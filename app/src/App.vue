@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import { nextTick, ref, watch, inject } from "vue";
-import {
-  Icon,
-  drawCanvasIcon,
-  CreateCacheStore,
-  clearCanvasIconCache,
-  providerKey,
-} from "@v-simple/icon";
+import { nextTick, ref, watch } from "vue";
+import { HomeIcon, homeMeta } from "@v-simple/icon/common";
+import { drawIconToCanvas } from "@v-simple/icon/core/drawIconToCanvas";
 
 const showIconOne = ref(true);
 const showIconTwo = ref(true);
@@ -15,8 +10,6 @@ const showCanvasTwo = ref(true);
 
 const canvasOneRef = ref<HTMLCanvasElement | null>(null);
 const canvasTwoRef = ref<HTMLCanvasElement | null>(null);
-
-const svgStore = inject<CreateCacheStore>(providerKey);
 
 const isRed = ref(true);
 
@@ -27,27 +20,21 @@ function getCssVar(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-async function renderCanvas() {
+/**
+ * Canvas 렌더링
+ */
+function renderCanvas() {
   const color = getCssVar("--icon-color");
-
-  console.log("Rendering canvas with color:", color);
 
   if (showCanvasOne.value && canvasOneRef.value) {
     const ctx = canvasOneRef.value.getContext("2d");
     if (ctx) {
       ctx.clearRect(0, 0, 64, 64);
 
-      await drawCanvasIcon(
-        ctx,
-        {
-          name: "sample",
-          stroke: color,
-          size: 50,
-          x: 7,
-          y: 7,
-        },
-        svgStore
-      );
+      drawIconToCanvas(ctx, homeMeta, {
+        stroke: color,
+        size: 50,
+      });
     }
   }
 
@@ -56,17 +43,10 @@ async function renderCanvas() {
     if (ctx) {
       ctx.clearRect(0, 0, 64, 64);
 
-      await drawCanvasIcon(
-        ctx,
-        {
-          name: "sample",
-          stroke: color,
-          size: 50,
-          x: 7,
-          y: 7,
-        },
-        svgStore
-      );
+      drawIconToCanvas(ctx, homeMeta, {
+        stroke: color,
+        size: 50,
+      });
     }
   }
 }
@@ -79,18 +59,15 @@ async function toggleColor() {
 
   document.documentElement.style.setProperty("--icon-color", isRed.value ? "red" : "blue");
 
-  // sprite cache 초기화
-  clearCanvasIconCache();
-
   await nextTick();
-  await renderCanvas();
+  renderCanvas();
 }
 
 watch(
   [showCanvasOne, showCanvasTwo],
   async () => {
     await nextTick();
-    await renderCanvas();
+    renderCanvas();
   },
   { immediate: true, flush: "post" }
 );
@@ -103,8 +80,8 @@ watch(
     <button @click="showIconOne = !showIconOne">아이콘 토글 1</button>
     <button @click="showIconTwo = !showIconTwo">아이콘 토글 2</button>
 
-    <Icon v-if="showIconOne" name="sample" width="50" height="50" color="red" />
-    <Icon v-if="showIconTwo" name="sample" width="50" height="50" color="blue" />
+    <HomeIcon v-if="showIconOne" width="50" height="50" color="red" />
+    <HomeIcon v-if="showIconTwo" width="50" height="50" color="blue" />
 
     <hr />
 
@@ -113,7 +90,6 @@ watch(
     <button @click="showCanvasOne = !showCanvasOne">캔버스 토글 1</button>
     <button @click="showCanvasTwo = !showCanvasTwo">캔버스 토글 2</button>
 
-    <!-- CSS 변수 변경 테스트 -->
     <button @click="toggleColor">CSS 변수 색상 변경</button>
 
     <canvas v-if="showCanvasOne" ref="canvasOneRef" width="64" height="64" />
