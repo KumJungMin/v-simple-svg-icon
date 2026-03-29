@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
-import { HomeIcon, homeMeta } from "@v-simple/icon/common";
+// @ts-ignore
+import { Sample1Icon, sample1Meta } from "@v-simple/icon/common";
 import { drawIconToCanvas } from "@v-simple/icon/core/drawIconToCanvas";
 
 const showIconOne = ref(true);
@@ -31,7 +32,7 @@ function renderCanvas() {
     if (ctx) {
       ctx.clearRect(0, 0, 64, 64);
 
-      drawIconToCanvas(ctx, homeMeta, {
+      drawIconToCanvas(ctx, sample1Meta, {
         stroke: color,
         size: 50,
       });
@@ -43,7 +44,7 @@ function renderCanvas() {
     if (ctx) {
       ctx.clearRect(0, 0, 64, 64);
 
-      drawIconToCanvas(ctx, homeMeta, {
+      drawIconToCanvas(ctx, sample1Meta, {
         stroke: color,
         size: 50,
       });
@@ -80,8 +81,8 @@ watch(
     <button @click="showIconOne = !showIconOne">아이콘 토글 1</button>
     <button @click="showIconTwo = !showIconTwo">아이콘 토글 2</button>
 
-    <HomeIcon v-if="showIconOne" width="50" height="50" color="red" />
-    <HomeIcon v-if="showIconTwo" width="50" height="50" color="blue" />
+    <Sample1Icon v-if="showIconOne" width="50" height="50" color="red" />
+    <Sample1Icon v-if="showIconTwo" width="50" height="50" color="blue" />
 
     <hr />
 

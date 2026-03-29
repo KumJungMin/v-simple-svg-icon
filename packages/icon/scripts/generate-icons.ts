@@ -10,21 +10,35 @@ const OUT = path.resolve("src/generated/common");
 
 /**
  * kebab → PascalCase
- * ex) home-icon → HomeIcon
  */
 function toPascalCase(str: string) {
   return str.replace(/(^\w|-\w)/g, (m) => m.replace("-", "").toUpperCase()).replace(".svg", "");
 }
 
 /**
+ * camelCase
+ */
+function toCamelCase(str: string) {
+  const pascal = toPascalCase(str);
+  return pascal.charAt(0).toLowerCase() + pascal.slice(1);
+}
+
+/**
  * 디렉토리 보장
  */
-if (!fs.existsSync(OUT)) {
-  fs.mkdirSync(OUT, { recursive: true });
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 }
+
+ensureDir(OUT);
 
 const indexExports: string[] = [];
 
+/**
+ * SVG 처리
+ */
 fs.readdirSync(SRC).forEach((file) => {
   if (!file.endsWith(".svg")) return;
 
@@ -38,7 +52,7 @@ fs.readdirSync(SRC).forEach((file) => {
   const groups = new Set<string>();
 
   /**
-   * 🔥 핵심: flatten + 그룹 추출
+   * flatten + group 추출
    */
   function walk(children: any[]) {
     children.forEach((n) => {
@@ -65,8 +79,9 @@ fs.readdirSync(SRC).forEach((file) => {
 
   const baseName = file.replace(".svg", "");
   const pascalName = toPascalCase(baseName);
+  const camelName = toCamelCase(baseName);
 
-  const metaName = `${baseName}Meta`;
+  const metaName = `${camelName}Meta`;
   const componentName = `${pascalName}Icon`;
 
   /**
@@ -101,11 +116,40 @@ export const ${componentName} = createIconComponent(${metaName});
    */
   indexExports.push(`export { ${componentName} } from "./${pascalName}Icon";`);
   indexExports.push(`export { ${metaName} } from "./${pascalName}.meta";`);
+  indexExports.push(`export type { ${pascalName}GroupName } from "./${pascalName}.meta";`);
 });
 
 /**
- * 3️⃣ index.ts 생성
+ * 3️⃣ index.ts merge 관리
  */
-fs.writeFileSync(path.join(OUT, "index.ts"), indexExports.join("\n"));
+const indexPath = path.join(OUT, "index.ts");
+
+let existingExports = new Set<string>();
+
+if (fs.existsSync(indexPath)) {
+  const content = fs.readFileSync(indexPath, "utf-8");
+
+  content.split("\n").forEach((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("export")) {
+      existingExports.add(trimmed);
+    }
+  });
+}
+
+/**
+ * 새 export 추가
+ */
+indexExports.forEach((exp) => existingExports.add(exp));
+
+/**
+ * 정렬
+ */
+const finalExports = Array.from(existingExports).sort();
+
+/**
+ * index.ts 생성
+ */
+fs.writeFileSync(indexPath, finalExports.join("\n"));
 
 console.log("✅ icons generated successfully");
