@@ -40,7 +40,7 @@ async function renderCanvas() {
       await drawCanvasIcon(
         ctx,
         {
-          name: "sample",
+          name: "sample-1",
           stroke: color,
           size: 50,
           x: 7,
@@ -59,7 +59,7 @@ async function renderCanvas() {
       await drawCanvasIcon(
         ctx,
         {
-          name: "sample",
+          name: "sample-1",
           stroke: color,
           size: 50,
           x: 7,
@@ -103,8 +103,7 @@ watch(
     <button @click="showIconOne = !showIconOne">아이콘 토글 1</button>
     <button @click="showIconTwo = !showIconTwo">아이콘 토글 2</button>
 
-    <Icon v-if="showIconOne" name="sample" width="50" height="50" color="red" />
-    <Icon v-if="showIconTwo" name="sample" width="50" height="50" color="blue" />
+    <Icon v-if="showIconOne" name="sample-1" width="50" height="50" color="red" />
 
     <hr />
 
