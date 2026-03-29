@@ -8,7 +8,7 @@ const app = createApp(App);
 const svgStore = useSvgCacheStore();
 
 svgStore.init(app, {
-  baseUrl: "/icons",
+  baseUrl: "@v-simple/icon/src/assets",
 });
 
 app.mount("#app");

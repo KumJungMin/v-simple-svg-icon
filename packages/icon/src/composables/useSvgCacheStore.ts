@@ -1,5 +1,10 @@
 import { ref, Ref, App, provide } from "vue";
 
+const svgRawLoaders = import.meta.glob("../assets/**/*.svg", {
+  query: "?raw",
+  import: "default",
+}) as Record<string, () => Promise<string>>;
+
 export interface SvgCacheStoreOptions {
   maxCacheSize?: number;
   baseUrl: string;
@@ -79,6 +84,48 @@ type PendingLoad = {
 };
 
 export function createSvgCacheStore(options: CreateSvgCacheStoreOptions): CreateCacheStore {
+  const normalizePath = (value: string) =>
+    value.replace(/\\/g, "/").replace(/\/+$|^\/+|\?.*$/g, "");
+
+  const getRelativeAssetsBase = (baseUrl: string) => {
+    const normalized = normalizePath(baseUrl);
+    const marker = "/assets";
+    const markerIndex = normalized.lastIndexOf(marker);
+
+    if (markerIndex >= 0) {
+      return normalized.slice(markerIndex + 1);
+    }
+
+    if (normalized.startsWith("assets")) {
+      return normalized;
+    }
+
+    return "assets";
+  };
+
+  const resolveSvgLoader = (name: string) => {
+    const relativeBase = getRelativeAssetsBase(options.baseUrl);
+    const preferredKey = `../${relativeBase}/${name}.svg`;
+    const preferredLoader = svgRawLoaders[preferredKey];
+    if (preferredLoader) {
+      return preferredLoader;
+    }
+
+    const matchedKeys = Object.keys(svgRawLoaders).filter((key) => key.endsWith(`/${name}.svg`));
+
+    if (matchedKeys.length === 1) {
+      return svgRawLoaders[matchedKeys[0]];
+    }
+
+    if (matchedKeys.length > 1) {
+      throw new Error(
+        `Multiple SVG files matched name "${name}". Use a more specific baseUrl. Candidates: ${matchedKeys.join(", ")}`
+      );
+    }
+
+    throw new Error(`SVG not found: name="${name}", baseUrl="${options.baseUrl}"`);
+  };
+
   const svgCache = ref<Map<string, string>>(new Map());
   const iconUsageCount = ref<Map<string, number>>(new Map());
   const pendingLoads = ref<Map<string, PendingLoad>>(new Map());
@@ -152,8 +199,8 @@ export function createSvgCacheStore(options: CreateSvgCacheStoreOptions): Create
 
   const loadSvgIcon = async (name: string): Promise<string> => {
     try {
-      const svg = await import(`${options.baseUrl}/${name}.svg?raw`);
-      return svg.default;
+      const loader = resolveSvgLoader(name);
+      return await loader();
     } catch (error) {
       console.error("Error loading SVG:", error);
       throw error;
