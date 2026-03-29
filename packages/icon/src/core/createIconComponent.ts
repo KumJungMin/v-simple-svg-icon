@@ -26,57 +26,142 @@ interface IconMeta {
   nodes: readonly IconNode[];
 }
 
-function toColorPair(color: IconColor): [string, string] {
-  if (Array.isArray(color)) {
-    return [color[0] ?? "currentColor", color[1] ?? color[0] ?? "currentColor"];
-  }
-  return [color, color];
-}
+type IconProps = {
+  width: string;
+  height: string;
+  color: IconColor;
+  activeColor: IconColor;
+  isActive: boolean;
+  strokeWidth: string;
+  colorGroup: IconColorGroup[];
+};
+
+type IconRenderContext = {
+  strokeColor: string;
+  fillColor: string;
+  strokeWidth: string;
+  colorGroup: IconColorGroup[];
+};
 
 export function createIconComponent(meta: IconMeta) {
+  const props = {
+    width: { type: String, default: "24" },
+    height: { type: String, default: "24" },
+    color: { type: [String, Array] as PropType<IconColor>, default: "currentColor" },
+    activeColor: { type: [String, Array] as PropType<IconColor>, default: "currentColor" },
+    isActive: { type: Boolean, default: false },
+    strokeWidth: { type: String, default: "1" },
+    colorGroup: { type: Array as PropType<IconColorGroup[]>, default: () => [] },
+  } as const;
+
   return defineComponent({
-    props: {
-      width: { type: String, default: "24" },
-      height: { type: String, default: "24" },
-      color: { type: [String, Array] as PropType<IconColor>, default: "currentColor" },
-      activeColor: { type: [String, Array] as PropType<IconColor>, default: "currentColor" },
-      isActive: { type: Boolean, default: false },
-      strokeWidth: { type: String, default: "1" },
-      colorGroup: { type: Array as PropType<IconColorGroup[]>, default: () => [] },
-    },
-    setup(props) {
-      function resolve(attrs: IconNodeAttrs): Record<string, string | number | undefined> {
-        const next: Record<string, string | number | undefined> = { ...attrs };
-        const [s, f] = toColorPair(props.color);
-        const [sa, fa] = toColorPair(props.activeColor);
+    props,
 
-        if (next.stroke && next.stroke !== "none") {
-          next.stroke = props.isActive ? sa : s;
-          next["stroke-width"] = props.strokeWidth;
-        }
-        if (next.fill && next.fill !== "none") {
-          next.fill = props.isActive ? fa : f;
-        }
-        const group = next["data-color-group"];
-        if (group) {
-          const found = props.colorGroup.find((g) => g.name === group);
-          if (found?.stroke) next.stroke = found.stroke;
-          if (found?.fill) next.fill = found.fill;
-        }
-        return next;
-      }
+    setup(props: IconProps) {
+      const renderNodes = createNodeRenderer(meta);
+      const renderSvg = createSvgRenderer(meta);
 
-      return () =>
-        h(
-          "svg",
-          {
-            viewBox: meta.viewBox,
-            width: props.width,
-            height: props.height,
-            fill: "none",
-          },
-          meta.nodes.map((node) => h(node.tag, resolve(node.attrs)))
-        );
+      return () => {
+        const [strokeColor, fillColor] = getCurrentColors(props);
+
+        const ctx = {
+          strokeColor,
+          fillColor,
+          strokeWidth: props.strokeWidth,
+          colorGroup: props.colorGroup,
+        };
+        const nodes = renderNodes(ctx);
+        return renderSvg(props, nodes);
+      };
     },
   });
+}
+
+function createNodeRenderer(meta: IconMeta) {
+  return function renderNodes(ctx: IconRenderContext) {
+    return meta.nodes.map((node, i) =>
+      h(node.tag, {
+        ...resolveNodeAttrs(node.attrs, ctx),
+        key: i,
+      })
+    );
+  };
+}
+
+function createSvgRenderer(meta: IconMeta) {
+  return function renderSvg(props: IconProps, children: any[]) {
+    return h(
+      "svg",
+      {
+        viewBox: meta.viewBox,
+        width: props.width,
+        height: props.height,
+        fill: "none",
+      },
+      children
+    );
+  };
+}
+
+/**
+ * resolve node attributes based on current context (colors, stroke width, color groups)
+ * - if stroke/fill is defined and not "none", apply current stroke/fill color from context
+ * - if data-color-group is defined, apply colors from the corresponding color group in context
+ * */
+function resolveNodeAttrs(nodeAttrs: IconNodeAttrs, ctx: IconRenderContext) {
+  const resolved = { ...nodeAttrs };
+
+  const hasStroke = resolved.stroke && resolved.stroke !== "none";
+  const hasFill = resolved.fill && resolved.fill !== "none";
+
+  if (hasStroke) {
+    resolved.stroke = ctx.strokeColor;
+    resolved["stroke-width"] = ctx.strokeWidth;
+  }
+  if (hasFill) {
+    resolved.fill = ctx.fillColor;
+  }
+
+  applyColorGroup(resolved, ctx.colorGroup);
+
+  return resolved;
+}
+
+/**
+ * If the svg has color groups, apply the colors from the group to the node attributes.
+ * the color group colors will override the stroke/fill colors from props.
+ * */
+function applyColorGroup(
+  attrs: Record<string, string | number | undefined>,
+  colorGroup: IconColorGroup[]
+) {
+  const groupName = attrs["data-color-group"];
+  if (!groupName) return;
+
+  const group = colorGroup.find((g) => g.name === groupName);
+  if (!group) return;
+
+  if (group.stroke) attrs.stroke = group.stroke;
+  if (group.fill) attrs.fill = group.fill;
+}
+
+/**
+ * get current colors based on active state
+ */
+function getCurrentColors(props: IconProps): [string, string] {
+  const base = normalizeColor(props.color);
+  const active = normalizeColor(props.activeColor);
+  return props.isActive ? active : base;
+}
+
+/**
+ * convert to stroke/fill pair, applying defaults
+ * */
+function normalizeColor(color: IconColor): [string, string] {
+  if (Array.isArray(color)) {
+    const stroke = color[0] ?? "currentColor";
+    const fill = color[1] ?? stroke;
+    return [stroke, fill];
+  }
+  return [color, color];
 }
