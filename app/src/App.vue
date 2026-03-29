@@ -46,7 +46,7 @@ async function renderCanvas() {
           x: 7,
           y: 7,
         },
-        svgStore
+        svgStore as CreateCacheStore
       );
     }
   }
@@ -65,7 +65,7 @@ async function renderCanvas() {
           x: 7,
           y: 7,
         },
-        svgStore
+        svgStore as CreateCacheStore
       );
     }
   }
