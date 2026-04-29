@@ -5,6 +5,9 @@ const svgRawLoaders = import.meta.glob("../assets/**/*.svg", {
   import: "default",
 }) as Record<string, () => Promise<string>>;
 
+const svgLoaderKeys = Object.keys(svgRawLoaders);
+const DEFAULT_MAX_CACHE_SIZE = Math.max(50, svgLoaderKeys.length);
+
 export interface SvgCacheStoreOptions {
   maxCacheSize?: number;
   baseUrl: string;
@@ -28,7 +31,7 @@ export function useSvgCacheStore(): SvgCacheStore {
   const init = (options?: SvgCacheStoreOptions) => {
     if (globalStore) return globalStore;
     if (!options?.baseUrl) throw new Error("baseUrl is required in SvgCacheStoreOptions");
-    globalStore = createSvgCacheStore({ maxCacheSize: 50, ...options });
+    globalStore = createSvgCacheStore({ maxCacheSize: DEFAULT_MAX_CACHE_SIZE, ...options });
     return globalStore;
   };
 
@@ -55,39 +58,56 @@ export interface CreateCacheStore {
 
 type PendingLoad = { promise: Promise<string>; count: number };
 
-export function createSvgCacheStore(options: Required<SvgCacheStoreOptions>): CreateCacheStore {
-  const normalizePath = (value: string) => value.replace(/\\/g, "/").replace(/\/+$/g, "").replace(/^\/+/, "").replace(/\?.*$/, "");
+const normalizePath = (value: string) =>
+  value.replace(/\\/g, "/").replace(/\/+$/g, "").replace(/^\/+/, "").replace(/\?.*$/, "");
 
-  const getRelativeAssetsBase = (baseUrl: string) => {
-    const normalized = normalizePath(baseUrl);
-    const markerIndex = normalized.lastIndexOf("/assets");
-    if (markerIndex >= 0) return normalized.slice(markerIndex + 1);
-    if (normalized.startsWith("assets")) return normalized;
-    return "assets";
-  };
+function getRelativeAssetsBase(baseUrl: string) {
+  const normalized = normalizePath(baseUrl);
+  const markerIndex = normalized.lastIndexOf("/assets");
+  if (markerIndex >= 0) return normalized.slice(markerIndex + 1);
+  if (normalized.startsWith("assets")) return normalized;
+  return "assets";
+}
 
-  const resolveSvgLoader = (name: string) => {
-    const relativeBase = getRelativeAssetsBase(options.baseUrl);
+function createSvgLoaderResolver(baseUrl: string) {
+  const relativeBase = getRelativeAssetsBase(baseUrl);
+
+  return (name: string) => {
     const preferredKey = `../${relativeBase}/${name}.svg`;
     if (svgRawLoaders[preferredKey]) return svgRawLoaders[preferredKey];
 
-    const matchedKeys = Object.keys(svgRawLoaders).filter((key) => key.endsWith(`/${name}.svg`));
+    const matchedKeys = svgLoaderKeys.filter((key) => key.endsWith(`/${name}.svg`));
     if (matchedKeys.length === 1) return svgRawLoaders[matchedKeys[0]];
     if (matchedKeys.length > 1) {
-      throw new Error(`Multiple SVG files matched name "${name}". Use a more specific baseUrl. Candidates: ${matchedKeys.join(", ")}`);
+      throw new Error(
+        `Multiple SVG files matched name "${name}". Use a more specific baseUrl. Candidates: ${matchedKeys.join(", ")}`
+      );
     }
-    throw new Error(`SVG not found: name="${name}", baseUrl="${options.baseUrl}"`);
+    throw new Error(`SVG not found: name="${name}", baseUrl="${baseUrl}"`);
   };
+}
 
+export function createSvgCacheStore(options: Required<SvgCacheStoreOptions>): CreateCacheStore {
+  const resolveSvgLoader = createSvgLoaderResolver(options.baseUrl);
   const svgCache = new Map<string, string>();
   const iconUsageCount = new Map<string, number>();
   const pendingLoads = new Map<string, PendingLoad>();
 
   const removeLeastRecentlyUsed = () => {
-    const firstKey = svgCache.keys().next().value as string | undefined;
-    if (!firstKey) return;
-    svgCache.delete(firstKey);
-    iconUsageCount.delete(firstKey);
+    let removableKey: string | undefined;
+
+    for (const key of svgCache.keys()) {
+      if ((iconUsageCount.get(key) ?? 0) <= 0) {
+        removableKey = key;
+        break;
+      }
+    }
+
+    if (!removableKey) removableKey = svgCache.keys().next().value as string | undefined;
+
+    if (!removableKey) return;
+    svgCache.delete(removableKey);
+    iconUsageCount.delete(removableKey);
   };
 
   const touchCache = (name: string) => {
@@ -128,9 +148,18 @@ export function createSvgCacheStore(options: Required<SvgCacheStoreOptions>): Cr
     return loadPromise;
   };
 
+  const removeSvg = (name: string) => {
+    const pending = pendingLoads.get(name);
+    if (pending && !svgCache.has(name)) {
+      pending.count = Math.max(pending.count - 1, 0);
+    }
+
+    iconUsageCount.set(name, Math.max((iconUsageCount.get(name) ?? 0) - 1, 0));
+  };
+
   return {
     loadSvg,
-    removeSvg: (name: string) => iconUsageCount.set(name, Math.max((iconUsageCount.get(name) ?? 0) - 1, 0)),
+    removeSvg,
     getSvgUsageCount: (name: string) => iconUsageCount.get(name) ?? 0,
     clearCache: () => {
       svgCache.clear();
