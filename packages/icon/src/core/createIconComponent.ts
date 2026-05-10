@@ -1,8 +1,8 @@
-import { defineComponent, h, type PropType } from "vue";
+import { createElement, forwardRef, type SVGProps } from "react";
 
-type IconColor = string | [string, string];
+type IconColor = string | readonly [string, string];
 
-interface IconColorGroup {
+export interface IconColorGroup {
   name: string;
   stroke?: string;
   fill?: string;
@@ -26,81 +26,61 @@ interface IconMeta {
   nodes: readonly IconNode[];
 }
 
-type IconProps = {
-  width: string;
-  height: string;
-  color: IconColor;
-  activeColor: IconColor;
-  isActive: boolean;
-  strokeWidth: string;
-  colorGroup: IconColorGroup[];
+export type IconProps = Omit<SVGProps<SVGSVGElement>, "color"> & {
+  color?: IconColor;
+  activeColor?: IconColor;
+  isActive?: boolean;
+  colorGroup?: IconColorGroup[];
 };
 
 type IconRenderContext = {
   strokeColor: string;
   fillColor: string;
-  strokeWidth: string;
+  strokeWidth: NonNullable<SVGProps<SVGSVGElement>["strokeWidth"]>;
   colorGroup: IconColorGroup[];
 };
 
 export function createIconComponent(meta: IconMeta) {
-  const props = {
-    width: { type: String, default: "24" },
-    height: { type: String, default: "24" },
-    color: { type: [String, Array] as PropType<IconColor>, default: "currentColor" },
-    activeColor: { type: [String, Array] as PropType<IconColor>, default: "currentColor" },
-    isActive: { type: Boolean, default: false },
-    strokeWidth: { type: String, default: "1" },
-    colorGroup: { type: Array as PropType<IconColorGroup[]>, default: () => [] },
-  } as const;
-
-  return defineComponent({
-    props,
-
-    setup(props: IconProps) {
-      const renderNodes = createNodeRenderer(meta);
-      const renderSvg = createSvgRenderer(meta);
-
-      return () => {
-        const [strokeColor, fillColor] = getCurrentColors(props);
-
-        const ctx = {
-          strokeColor,
-          fillColor,
-          strokeWidth: props.strokeWidth,
-          colorGroup: props.colorGroup,
-        };
-        const nodes = renderNodes(ctx);
-        return renderSvg(props, nodes);
-      };
+  return forwardRef<SVGSVGElement, IconProps>(function IconComponent(
+    {
+      width = 24,
+      height = 24,
+      color = "currentColor",
+      activeColor = "currentColor",
+      isActive = false,
+      strokeWidth = 1,
+      colorGroup = [],
+      ...svgProps
     },
-  });
-}
+    ref
+  ) {
+    const [strokeColor, fillColor] = getCurrentColors({ color, activeColor, isActive });
 
-function createNodeRenderer(meta: IconMeta) {
-  return function renderNodes(ctx: IconRenderContext) {
-    return meta.nodes.map((node, i) =>
-      h(node.tag, {
-        ...resolveNodeAttrs(node.attrs, ctx),
-        key: i,
-      })
-    );
-  };
-}
+    const ctx = {
+      strokeColor,
+      fillColor,
+      strokeWidth,
+      colorGroup,
+    };
 
-function createSvgRenderer(meta: IconMeta) {
-  return function renderSvg(props: IconProps, children: any[]) {
-    return h(
+    return createElement(
       "svg",
       {
+        ...svgProps,
+        ref,
         viewBox: meta.viewBox,
-        width: props.width,
-        height: props.height,
-        fill: "none",
+        width,
+        height,
+        fill: svgProps.fill ?? "none",
       },
-      children
+      meta.nodes.map((node, index) =>
+        createElement(node.tag, {
+          ...resolveNodeAttrs(node.attrs, ctx),
+          key: `${node.tag}-${index}`,
+        })
+      )
     );
-  };
+  });
 }
 
 /**
@@ -124,7 +104,7 @@ function resolveNodeAttrs(nodeAttrs: IconNodeAttrs, ctx: IconRenderContext) {
 
   applyColorGroup(resolved, ctx.colorGroup);
 
-  return resolved;
+  return normalizeAttrs(resolved);
 }
 
 /**
@@ -148,7 +128,7 @@ function applyColorGroup(
 /**
  * get current colors based on active state
  */
-function getCurrentColors(props: IconProps): [string, string] {
+function getCurrentColors(props: Pick<IconProps, "color" | "activeColor" | "isActive">): [string, string] {
   const base = normalizeColor(props.color);
   const active = normalizeColor(props.activeColor);
   return props.isActive ? active : base;
@@ -157,11 +137,34 @@ function getCurrentColors(props: IconProps): [string, string] {
 /**
  * convert to stroke/fill pair, applying defaults
  * */
-function normalizeColor(color: IconColor): [string, string] {
+function normalizeColor(color: IconColor | undefined): [string, string] {
+  if (typeof color === "string") {
+    return [color, color];
+  }
+
   if (Array.isArray(color)) {
     const stroke = color[0] ?? "currentColor";
     const fill = color[1] ?? stroke;
     return [stroke, fill];
   }
-  return [color, color];
+
+  return ["currentColor", "currentColor"];
+}
+
+function normalizeAttrs(attrs: Record<string, string | number | undefined>) {
+  const normalized: Record<string, string | number> = {};
+
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === undefined) continue;
+    normalized[toReactAttrName(key)] = value;
+  }
+
+  return normalized;
+}
+
+function toReactAttrName(attrName: string) {
+  if (attrName === "class") return "className";
+  if (attrName.startsWith("data-") || attrName.startsWith("aria-")) return attrName;
+
+  return attrName.replace(/[:\-]([a-z])/g, (_, char: string) => char.toUpperCase());
 }

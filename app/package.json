@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
@@ -15,12 +15,14 @@
   },
   "dependencies": {
     "@v-simple/icon": "workspace:*",
-    "vue": "^3.4.15"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.6.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "typescript": "^5.2.2",
-    "vite": "^5.0.12",
-    "vue-tsc": "^1.8.27"
+    "vite": "^5.0.12"
   }
 }

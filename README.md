@@ -6,13 +6,13 @@
 
 ```text
 .
-├── app/                 # 아이콘 패키지 사용 샘플 앱
+├── app/                 # 아이콘 패키지 사용 React 샘플 앱
 │   ├── src/
-│   │   ├── App.vue      # 컴포넌트 방식 + 캔버스 방식 예시
+│   │   ├── App.tsx      # 컴포넌트 방식 + 캔버스 방식 예시
 │   │   └── components/
 │   └── public/icons/    # 샘플 SVG 아이콘
 └── packages/
-   └── icon/            # 핵심 아이콘 로직(GenIcon, store 등)
+   └── icon/             # 핵심 아이콘 로직(React icon + canvas renderer)
 ```
 
 ## 실행

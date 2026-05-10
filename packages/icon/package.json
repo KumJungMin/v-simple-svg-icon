@@ -1,8 +1,8 @@
 {
   "name": "@v-simple/icon",
   "type": "module",
-  "dependencies": {
-    "vue": "^3.4.15"
+  "peerDependencies": {
+    "react": "^19.0.0"
   },
   "scripts": {
     "generate:icons": "ts-node scripts/generate-icons.ts"
@@ -29,6 +29,8 @@
   },
   "sideEffects": false,
   "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
     "svg-parser": "^2.0.4"
   }
 }
