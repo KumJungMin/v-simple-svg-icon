@@ -32,7 +32,7 @@ export function generateIconFromSvg(
   const svg = extractSvgTree(raw);
   if (!svg) return;
 
-  const { nodes, groups } = flattenSvg(svg);
+  const { nodes, groups } = flattenSvg(svg, file);
 
   const baseName = file.replace(".svg", "");
   const pascalName = toPascalCase(baseName);

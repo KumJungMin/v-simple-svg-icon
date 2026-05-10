@@ -1,14 +1,5 @@
 import { parse } from "svg-parser";
 
-/**
- * Minimal SVG AST node type (from svg-parser)
- */
-interface SvgAstNode {
-  tagName?: string;
-  properties?: Record<string, any>;
-  children?: SvgAstNode[];
-}
-
 interface SvgAstNode {
   tagName?: string;
   properties?: Record<string, unknown>;
@@ -17,37 +8,23 @@ interface SvgAstNode {
 
 type SvgAttrs = Record<string, string | number | undefined>;
 
+const SUPPORTED_ICON_TAGS = new Set(["path"]);
+
 /** Extracts the root <svg> node from raw SVG string. */
 export function extractSvgTree(raw: string): SvgAstNode | undefined {
-  const parsed = parse(raw) as { children: SvgAstNode[] };
+  const parsed = parse(raw) as { children?: SvgAstNode[] };
 
-  return parsed.children.find((node) => node.tagName === "svg");
+  return parsed.children?.find((node) => node.tagName === "svg");
 }
 
 /**
- * Flattens an SVG AST into a linear structure.
- *
- * Input (tree):
- * svg
- *  ├─ g
- *  │   └─ path
- *  └─ path
- *
- * Output:
- * {
- *   nodes: [
- *     { tag: "g", attrs: {...} },
- *     { tag: "path", attrs: {...} },
- *     { tag: "path", attrs: {...} }
- *   ],
- *   groups: ["primary", "secondary"]
- * }
+ * Collects supported icon nodes from a path-only SVG tree.
  */
-export function flattenSvg(svg: SvgAstNode) {
+export function flattenSvg(svg: SvgAstNode, sourceName = "svg") {
   const nodes: Array<{ tag: string; attrs: SvgAttrs }> = [];
   const groups = new Set<string>();
 
-  collectNodes(svg.children ?? [], nodes, groups);
+  collectNodes(svg.children ?? [], nodes, groups, sourceName);
 
   return {
     nodes,
@@ -58,22 +35,44 @@ export function flattenSvg(svg: SvgAstNode) {
 function collectNodes(
   children: SvgAstNode[],
   nodes: Array<{ tag: string; attrs: SvgAttrs }>,
-  groups: Set<string>
+  groups: Set<string>,
+  sourceName: string
 ) {
   for (const node of children) {
-    if (!node.tagName) continue;
+    const { tagName } = node;
+    if (!tagName) continue;
 
-    const attrs: SvgAttrs = (node.properties ?? {}) as SvgAttrs;
+    if (!SUPPORTED_ICON_TAGS.has(tagName)) {
+      throw new Error(`Unsupported SVG tag <${tagName}> in ${sourceName}. Only <path> icons are supported.`);
+    }
 
+    if (hasElementChildren(node.children)) {
+      throw new Error(`Nested SVG elements under <${tagName}> are not supported in ${sourceName}.`);
+    }
+
+    const attrs = toSvgAttrs(node.properties);
     const group = attrs["data-color-group"];
+
     if (typeof group === "string") {
       groups.add(group);
     }
 
-    nodes.push({ tag: node.tagName, attrs });
+    nodes.push({ tag: tagName, attrs });
+  }
+}
 
-    if (node.children?.length) {
-      collectNodes(node.children, nodes, groups);
+function hasElementChildren(children: SvgAstNode[] | undefined) {
+  return (children ?? []).some((child) => child.tagName);
+}
+
+function toSvgAttrs(properties: Record<string, unknown> | undefined): SvgAttrs {
+  const attrs: SvgAttrs = {};
+
+  for (const [key, value] of Object.entries(properties ?? {})) {
+    if (typeof value === "string" || typeof value === "number") {
+      attrs[key] = value;
     }
   }
+
+  return attrs;
 }

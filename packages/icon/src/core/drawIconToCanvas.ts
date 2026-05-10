@@ -4,6 +4,9 @@ interface CanvasIconNode {
     d?: string;
     fill?: string;
     stroke?: string;
+    "stroke-width"?: string | number;
+    "stroke-linecap"?: string;
+    "stroke-linejoin"?: string;
   };
 }
 
@@ -67,13 +70,22 @@ function resolveDrawStyles(node: CanvasIconNode, options: DrawIconOptions) {
   return {
     fill: hasFill ? (options.fill ?? "black") : null,
     stroke: hasStroke ? (options.stroke ?? "black") : null,
+    lineWidth: getLineWidth(node.attrs["stroke-width"]),
+    lineCap: getLineCap(node.attrs["stroke-linecap"]),
+    lineJoin: getLineJoin(node.attrs["stroke-linejoin"]),
   };
 }
 
 function drawPath(
   ctx: CanvasRenderingContext2D,
   d: string,
-  styles: { fill: string | null; stroke: string | null }
+  styles: {
+    fill: string | null;
+    stroke: string | null;
+    lineWidth: number;
+    lineCap: CanvasLineCap;
+    lineJoin: CanvasLineJoin;
+  }
 ) {
   const path = new Path2D(d);
   if (styles.fill) {
@@ -82,6 +94,30 @@ function drawPath(
   }
   if (styles.stroke) {
     ctx.strokeStyle = styles.stroke;
+    ctx.lineWidth = styles.lineWidth;
+    ctx.lineCap = styles.lineCap;
+    ctx.lineJoin = styles.lineJoin;
     ctx.stroke(path);
   }
+}
+
+function getLineWidth(value: string | number | undefined) {
+  if (typeof value === "number") return value;
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+
+  return 1;
+}
+
+function getLineCap(value: string | undefined): CanvasLineCap {
+  if (value === "round" || value === "square") return value;
+  return "butt";
+}
+
+function getLineJoin(value: string | undefined): CanvasLineJoin {
+  if (value === "round" || value === "bevel") return value;
+  return "miter";
 }

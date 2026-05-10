@@ -36,7 +36,7 @@ export type IconProps = Omit<SVGProps<SVGSVGElement>, "color"> & {
 type IconRenderContext = {
   strokeColor: string;
   fillColor: string;
-  strokeWidth: NonNullable<SVGProps<SVGSVGElement>["strokeWidth"]>;
+  strokeWidth?: SVGProps<SVGSVGElement>["strokeWidth"];
   colorGroup: IconColorGroup[];
 };
 
@@ -48,7 +48,7 @@ export function createIconComponent(meta: IconMeta) {
       color = "currentColor",
       activeColor = "currentColor",
       isActive = false,
-      strokeWidth = 1,
+      strokeWidth,
       colorGroup = [],
       ...svgProps
     },
@@ -96,7 +96,9 @@ function resolveNodeAttrs(nodeAttrs: IconNodeAttrs, ctx: IconRenderContext) {
 
   if (hasStroke) {
     resolved.stroke = ctx.strokeColor;
-    resolved["stroke-width"] = ctx.strokeWidth;
+    if (ctx.strokeWidth !== undefined) {
+      resolved["stroke-width"] = ctx.strokeWidth;
+    }
   }
   if (hasFill) {
     resolved.fill = ctx.fillColor;
@@ -166,5 +168,5 @@ function toReactAttrName(attrName: string) {
   if (attrName === "class") return "className";
   if (attrName.startsWith("data-") || attrName.startsWith("aria-")) return attrName;
 
-  return attrName.replace(/[:\-]([a-z])/g, (_, char: string) => char.toUpperCase());
+  return attrName.replace(/[:-]([a-z])/g, (_, char: string) => char.toUpperCase());
 }
